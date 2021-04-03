@@ -29,7 +29,7 @@ class FileValidation implements ValidationInterface
         $status = false;
 
         if (!file_exists($path)) {
-            $errors[] = "File not found";
+            $errors[0] = "File not found";
 
             return [$status, $errors];
         }
@@ -41,7 +41,7 @@ class FileValidation implements ValidationInterface
         } else if ($fileParts["extension"] === "xls") {
             $reader = new Xls;
         } else {
-            $errors[] = "File format is unsupported";
+            $errors[0] = "File format is unsupported";
         }
 
         $spreadsheet = $reader->load($path);
@@ -51,7 +51,7 @@ class FileValidation implements ValidationInterface
         $highestColumnIndex = Coordinate::columnIndexFromString($highestColumn);
 
         if (count($this->columns) !== $highestColumnIndex) {
-            $errors[] = "Column number isn't matched";
+            $errors[0] = "Column number isn't matched";
         }
 
         if (!empty($errors)) {
@@ -62,7 +62,11 @@ class FileValidation implements ValidationInterface
             $header = $worksheet->getCellByColumnAndRow($i, 1)->getValue();
 
             if ($this->columns[$i - 1] !== $header) {
-                $errors[] = "Invalid Column Name at column: " . $i;
+                if (isset($errors[1])) {
+                    $errors[1] .= ". Invalid Column Name at column: " . $i;
+                } else {
+                    $errors[1] = "Invalid Column Name at column: " . $i;
+                }
             }
 
             for ($j = 2; $j <= $highestRow; $j++) {
@@ -70,13 +74,21 @@ class FileValidation implements ValidationInterface
 
                 if (substr($header, 0, 1) === "#") {
                     if (strpos($curValue, " ")) {
-                        $errors[] = $header . " should not contain any space at row: " . $j;
+                        if (isset($errors[$j])) {
+                            $errors[$j] .= ". " . $header . " should not contain any space at row: " . $j;
+                        } else {
+                            $errors[$j] = $header . " should not contain any space at row: " . $j;
+                        }
                     }
                 }
 
                 if (substr($header, -1) === "*") {
                     if ($curValue === "") {
-                        $errors[] = "Missing value in " . $header . " at row: " . $j;
+                        if (isset($errors[$j])) {
+                            $errors[$j] .= ". Missing value in " . $header . " at row: " . $j;
+                        } else {
+                            $errors[$j] = "Missing value in " . $header . " at row: " . $j;
+                        }
                     }
                 }
             }
